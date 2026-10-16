@@ -1,0 +1,11 @@
+﻿@* Root of the admin client: rendered by the host's App.razor with InteractiveWebAssembly for /admin/**. *@
+<Router AppAssembly="typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(AdminLayout)">
+            <NotAuthorized>
+                <p class="alert alert-danger">You are not allowed to use the admin area.</p>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

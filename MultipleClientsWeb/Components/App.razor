@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    @if (area is not null)
+    {
+        @* Not <ResourcePreloader />: that preloads the runtime of every referenced client, not just this area's. *@
+        <link rel="preload" href="@Assets[$"{area.StaticWebAssetBasePath}/_framework/dotnet.js"]" as="script" fetchpriority="high" crossorigin="anonymous" />
+    }
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    @* A library file resolved through Assets is fingerprinted like a host file. *@
+    <link rel="stylesheet" href="@Assets[SharedAssets.CssBundle]" />
+    <link rel="stylesheet" href="@Assets["MultipleClientsWeb.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="@Assets["favicon.png"]" />
+    @if (area is null)
+    {
+        <HeadOutlet />
+    }
+    else
+    {
+        <HeadOutlet @rendermode="InteractiveWebAssembly" />
+    }
+</head>
+
+<body>
+    @if (area == ClientArea.Admin)
+    {
+        <MultipleClientAdmin.Routes @rendermode="InteractiveWebAssembly" />
+    }
+    else if (area == ClientArea.Game)
+    {
+        <MultipleClientGame.Routes @rendermode="InteractiveWebAssembly" />
+    }
+    else
+    {
+        <Routes />
+    }
+    <script src="@Assets["_framework/blazor.web.js"]" autostart="false"></script>
+    @if (area is null)
+    {
+        <script>Blazor.start();</script>
+    }
+    else
+    {
+        @* blazor.web.js looks for dotnet.js in /_framework; this area's runtime lives under its own base path. *@
+        <script>
+            Blazor.start({
+                webAssembly: {
+                    loadBootResource: (type, name) => `${document.baseURI}@(area.StaticWebAssetBasePath)/_framework/${name}`
+                }
+            });
+        </script>
+    }
+</body>
+
+</html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private ClientArea? area;
+
+    protected override void OnInitialized() => area = HttpContext is null ? null : ClientArea.FromPath(HttpContext.Request.Path);
+}

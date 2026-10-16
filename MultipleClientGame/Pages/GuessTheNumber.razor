@@ -1,0 +1,44 @@
+﻿@page "/game"
+@attribute [Authorize]
+
+<PageTitle>Game</PageTitle>
+
+<h1>Guess the number</h1>
+
+<p>
+    This page lives in the <code>MultipleClientGame</code> WebAssembly client, served from
+    <code>/game-client/_framework/</code>.
+</p>
+
+<p role="status">@message</p>
+
+<div class="input-group mb-3" style="max-width: 20rem">
+    <input class="form-control" type="number" min="1" max="100" @bind="guess" />
+    <button class="btn btn-success" @onclick="Guess">Guess</button>
+</div>
+
+<button class="btn btn-outline-secondary" @onclick="NewGame">New game</button>
+
+@code {
+    private int secret = Random.Shared.Next(1, 101);
+    private int guess = 50;
+    private int attempts;
+    private string message = "I picked a number between 1 and 100.";
+
+    private void Guess()
+    {
+        attempts++;
+        message = guess.CompareTo(secret) switch {
+            < 0 => $"{guess} is too low.",
+            > 0 => $"{guess} is too high.",
+            _ => $"{guess} is correct, found in {attempts} attempts!"
+        };
+    }
+
+    private void NewGame()
+    {
+        secret = Random.Shared.Next(1, 101);
+        attempts = 0;
+        message = "I picked a new number between 1 and 100.";
+    }
+}

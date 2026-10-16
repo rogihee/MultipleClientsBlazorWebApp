@@ -1,0 +1,15 @@
+﻿.version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .125rem .5rem .125rem 1.5rem;
+    border-radius: 1rem;
+    font-size: .75rem;
+    color: #212529;
+    /* Relative to the bundle in _content/MultipleClientShared; the build appends ?v= to this url. */
+    background: #f8f9fa url('images/badge-bg.svg') no-repeat .25rem center / 1rem;
+}
+
+.module-loaded {
+    color: #198754;
+}

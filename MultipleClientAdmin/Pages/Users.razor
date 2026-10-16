@@ -1,0 +1,29 @@
+﻿@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Users</PageTitle>
+
+<h1>Users</h1>
+
+<div class="input-group mb-3">
+    <input class="form-control" placeholder="New user" @bind="newUser" @bind:event="oninput" />
+    <button class="btn btn-danger" disabled="@string.IsNullOrWhiteSpace(newUser)" @onclick="AddUser">Add</button>
+</div>
+
+<ul class="list-group">
+    @foreach (var user in users)
+    {
+        <li class="list-group-item">@user</li>
+    }
+</ul>
+
+@code {
+    private readonly List<string> users = ["alice", "bob"];
+    private string newUser = "";
+
+    private void AddUser()
+    {
+        users.Add(newUser.Trim());
+        newUser = "";
+    }
+}

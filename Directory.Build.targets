@@ -1,0 +1,30 @@
+﻿<Project>
+
+  <!--
+    Regex-rewrites a generated CSS bundle in place, e.g. to cache-bust url()s or @imports. Don't use
+    WriteLinesToFile for this: it splits the content on ';' and turns '\' into '/' on Linux, which breaks
+    CSS escapes such as content: "\2192".
+    The pattern must also match its own output, because the rewrite can run on an already rewritten file.
+  -->
+  <UsingTask TaskName="VersionCssUrls"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <File ParameterType="System.String" Required="true" />
+      <Pattern ParameterType="System.String" Required="true" />
+      <Replacement ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (System.IO.File.Exists(File))
+        {
+            var text = System.IO.File.ReadAllText(File);
+            var rewritten = System.Text.RegularExpressions.Regex.Replace(text, Pattern, Replacement);
+            if (rewritten != text)
+                System.IO.File.WriteAllText(File, rewritten, new System.Text.UTF8Encoding(false));
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+</Project>

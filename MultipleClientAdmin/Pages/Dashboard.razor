@@ -1,0 +1,18 @@
+﻿@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin</PageTitle>
+
+<h1>Admin dashboard</h1>
+
+<p>
+    This page lives in the <code>MultipleClientAdmin</code> WebAssembly client. Its runtime is served from
+    <code>/admin-client/_framework/</code>, separate from the game client.
+</p>
+
+<p role="status">Refresh count: @refreshCount</p>
+<button class="btn btn-danger" @onclick="() => refreshCount++">Refresh statistics</button>
+
+@code {
+    private int refreshCount;
+}

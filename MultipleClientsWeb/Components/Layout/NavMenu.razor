@@ -1,0 +1,43 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">MultipleClientsWeb</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <form action="logout" method="post">
+                        <AntiforgeryToken />
+                        <button type="submit" class="nav-link">Log out @context.User.Identity?.Name</button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">Log in</NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        @* The areas boot their own WebAssembly client, so enhanced navigation must not be used to get there. *@
+        <div data-enhance-nav="false">
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="admin">Admin client</NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="game">Game client</NavLink>
+            </div>
+        </div>
+    </nav>
+</div>

@@ -1,0 +1,59 @@
+﻿@page "/login"
+@inject NavigationManager Navigation
+
+<PageTitle>Log in</PageTitle>
+
+<h1>Log in</h1>
+
+<p>Static SSR form. Any user name is accepted; pick a role to see the authorization on the client areas.</p>
+
+<EditForm Model="Model" method="post" OnValidSubmit="LogInAsync" FormName="login" class="col-md-4">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+    <div class="mb-3">
+        <label for="username" class="form-label">User name</label>
+        <InputText id="username" class="form-control" @bind-Value="Model.UserName" />
+    </div>
+    <div class="mb-3">
+        <label for="role" class="form-label">Role</label>
+        <InputSelect id="role" class="form-select" @bind-Value="Model.Role">
+            <option value="Player">Player</option>
+            <option value="Admin">Admin</option>
+        </InputSelect>
+    </div>
+    <button type="submit" class="btn btn-primary">Log in</button>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [SupplyParameterFromForm(Name = nameof(Model))]
+    private LoginInput? Input { get; set; }
+
+    private LoginInput Model => Input ??= new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private async Task LogInAsync()
+    {
+        ArgumentNullException.ThrowIfNull(HttpContext);
+        ClaimsIdentity identity = new([new(ClaimTypes.Name, Model.UserName), new(ClaimTypes.Role, Model.Role)],
+                                      CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(new ClaimsPrincipal(identity));
+        // The target is usually an area with its own WebAssembly client, so always do a full page load.
+        Navigation.NavigateTo(IsLocalUrl(ReturnUrl) ? ReturnUrl : "", forceLoad: true);
+    }
+
+    private static bool IsLocalUrl([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? url) =>
+        url is ['/', not '/' and not '\\', ..] or ['/'];
+
+    private sealed class LoginInput
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string UserName { get; set; } = "";
+
+        public string Role { get; set; } = "Player";
+    }
+}

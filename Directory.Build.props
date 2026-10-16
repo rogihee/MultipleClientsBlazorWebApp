@@ -1,0 +1,15 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <IsPackable>false</IsPackable>
+    <!-- The cache-busting ?v= query on library assets. A CI build sets it per deployment, e.g. -p:Version=1.2.3. -->
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>

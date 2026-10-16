@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+    <!-- See MultipleClientAdmin.csproj: a unique base path per WebAssembly client. -->
+    <StaticWebAssetBasePath>game-client</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" />
+    <ProjectReference Include="..\MultipleClientShared\MultipleClientShared.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MultipleClientAdmin\MultipleClientAdmin.csproj" />
+    <ProjectReference Include="..\MultipleClientGame\MultipleClientGame.csproj" />
+    <ProjectReference Include="..\MultipleClientShared\MultipleClientShared.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+  </ItemGroup>
+
+</Project>

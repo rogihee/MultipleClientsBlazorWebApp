@@ -1,0 +1,37 @@
+﻿@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<h1>Multiple client apps</h1>
+
+<p>
+    This page and the login page are static server-side rendered by <code>MultipleClientsWeb</code>:
+    no WebAssembly runtime is downloaded here.
+</p>
+
+<ul data-enhance-nav="false">
+    <li><a href="admin">Admin</a> - the <code>MultipleClientAdmin</code> WebAssembly client (role Admin).</li>
+    <li><a href="game">Game</a> - the <code>MultipleClientGame</code> WebAssembly client (any logged in user).</li>
+</ul>
+
+<h2>Cache busting</h2>
+
+<p>
+    Ways to keep static assets cacheable without serving stale files after a deployment; see the README. The badge
+    <VersionBadge /> comes from <code>MultipleClientShared</code>; in the clients it also imports a versioned JS module.
+</p>
+
+<table class="table table-sm asset-examples">
+    <thead>
+        <tr><th>Technique</th><th>Url on this page</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Host file through <code>@@Assets[...]</code>: fingerprinted</td><td><code>@Assets["app.css"]</code></td></tr>
+        <tr><td>Library file through <code>@@Assets[...]</code>: fingerprinted</td><td><code>@Assets[SharedAssets.CssBundle]</code></td></tr>
+        <tr><td>Library file, url built by the library: version query</td><td><code>@SharedAssets.AppendVersion(SharedAssets.Logo)</code></td></tr>
+        <tr><td>Library JS module for <code>import()</code>: version query</td><td><code>@SharedAssets.ModuleUrl(SharedAssets.AssetInfoModule)</code></td></tr>
+        <tr><td>Library scoped CSS <code>@@import</code>: fingerprinted by the SDK</td><td><code>_content/MultipleClientShared/MultipleClientShared.{hash}.bundle.scp.css</code></td></tr>
+        <tr><td>Image <code>url()</code> in library scoped CSS: version query added at build</td><td><code>images/badge-bg.svg?v=@SharedAssets.Version</code></td></tr>
+        <tr><td>Client runtime: fingerprinted through the import map</td><td><code>@Assets["admin-client/_framework/dotnet.js"]</code></td></tr>
+    </tbody>
+</table>

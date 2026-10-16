@@ -1,0 +1,11 @@
+﻿@* Root of the game client: rendered by the host's App.razor with InteractiveWebAssembly for /game/**. *@
+<Router AppAssembly="typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(GameLayout)">
+            <NotAuthorized>
+                <p class="alert alert-warning">Log in to play.</p>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

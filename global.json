@@ -1,0 +1,13 @@
+﻿{
+  "sdk": {
+    "version": "10.0.402",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  },
+  "tools": {
+    "dotnet": "10.0"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}

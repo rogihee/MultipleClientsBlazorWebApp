@@ -1,0 +1,24 @@
+﻿@inject IJSRuntime JS
+
+<span class="version-badge" title="@moduleUrl">
+    <img src="@SharedAssets.AppendVersion(SharedAssets.Logo)" alt="" width="16" height="16" />
+    v@(SharedAssets.Version)
+    @if (moduleUrl is not null)
+    {
+        <span class="module-loaded">module loaded</span>
+    }
+</span>
+
+@code {
+    private string? moduleUrl;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await using var module = await JS.InvokeAsync<IJSObjectReference>("import", SharedAssets.ModuleUrl(SharedAssets.AssetInfoModule));
+        moduleUrl = await module.InvokeAsync<string>("moduleUrl");
+        StateHasChanged();
+    }
+}

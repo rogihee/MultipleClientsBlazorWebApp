@@ -1,0 +1,26 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<nav class="navbar navbar-expand navbar-dark bg-danger px-3">
+    <span class="navbar-brand">Admin client</span>
+    <div class="navbar-nav">
+        <NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">Dashboard</NavLink>
+        <NavLink class="nav-link" href="admin/users">Users</NavLink>
+        @* Leaving the area boots another WebAssembly runtime, so it has to be a full page load. *@
+        <a class="nav-link" href="game" @onclick='() => LeaveArea("game")' @onclick:preventDefault>Game</a>
+        <a class="nav-link" href="" @onclick='() => LeaveArea("")' @onclick:preventDefault>Home</a>
+    </div>
+    <span class="navbar-text ms-auto">
+        <AuthorizeView>@context.User.Identity?.Name</AuthorizeView>
+        <span class="badge bg-light text-dark ms-2">@RendererInfo.Name</span>
+        <MultipleClientShared.VersionBadge />
+    </span>
+</nav>
+
+<main class="container py-4">
+    @Body
+</main>
+
+@code {
+    private void LeaveArea(string relativeUri) => Navigation.NavigateTo(relativeUri, forceLoad: true);
+}

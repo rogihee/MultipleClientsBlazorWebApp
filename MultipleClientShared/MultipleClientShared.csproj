@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+  </ItemGroup>
+
+  <!--
+    The scoped CSS bundle is served from _content without a fingerprint, and so are the images its
+    url()s point at. Append the version so a deployment with new images is not served from cache.
+  -->
+  <Target Name="CachebustScopedCssImages" AfterTargets="BundleScopedCssFiles">
+    <VersionCssUrls File="$(_ScopedCssProjectOutputFullPath)" Pattern="\.(svg|png|jpg)(\?v=[^%27)]*)?%27" Replacement=".%241?v=$(Version)%27" />
+    <VersionCssUrls File="$(_ScopedCssOutputFullPath)" Pattern="\.(svg|png|jpg)(\?v=[^%27)]*)?%27" Replacement=".%241?v=$(Version)%27" />
+  </Target>
+
+</Project>

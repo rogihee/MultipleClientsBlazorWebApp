@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+    <!--
+      Every WebAssembly client publishes its own _framework folder. A unique base path keeps the
+      admin and game runtimes apart; the host page points Blazor.start's loadBootResource at it.
+    -->
+    <StaticWebAssetBasePath>admin-client</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" />
+    <ProjectReference Include="..\MultipleClientShared\MultipleClientShared.csproj" />
+  </ItemGroup>
+
+</Project>
