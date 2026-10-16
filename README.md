@@ -4,6 +4,8 @@ A sample of one .NET 10 **Blazor Web App** that serves static SSR pages (home, l
 Interactive WebAssembly clients**, each in its own area of the site. It is an alternative to the older hosted model,
 where every area is a standalone WebAssembly app behind a Razor Pages host page and always shows a loading screen.
 
+**Live demo:** <https://multiple-clients-blazor.azurewebsites.net> (log in with any user name and pick a role).
+
 | Project | Role | URL | Static web asset base path |
 | --- | --- | --- | --- |
 | `MultipleClientsWeb` | Host, static SSR pages, cookie authentication | `/`, `/login` | – |
