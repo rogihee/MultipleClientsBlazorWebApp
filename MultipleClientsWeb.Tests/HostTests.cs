@@ -59,11 +59,11 @@ public partial class HostTests
     }
 
     [Test]
-    [Arguments("/", "Player", null)]
-    [Arguments("/login", "Player", null)]
-    [Arguments("/admin", "Admin", "admin-client")]
-    [Arguments("/game", "Player", "game-client")]
-    public async Task Get_Page_ImportMapListsOnlyItsOwnClient(string path, string role, string? ownClient)
+    [Arguments("/", "Player", null, null)]
+    [Arguments("/login", "Player", null, null)]
+    [Arguments("/admin", "Admin", "admin-client", "_content/AdminOnlyLib/admin-tools.js")]
+    [Arguments("/game", "Player", "game-client", "_content/GameOnlyLib/game-tools.js")]
+    public async Task Get_Page_ImportMapListsOnlyItsOwnClient(string path, string role, string? ownClient, string? ownLibraryModule)
     {
         var client = await LogInAsync(role);
 
@@ -71,10 +71,35 @@ public partial class HostTests
 
         await Assert.That(importMap).Contains("_framework/blazor.web.js");
         await Assert.That(importMap).DoesNotContain("resource-collection");
-        foreach (var area in ClientArea.All.Where(area => area.StaticWebAssetBasePath != ownClient))
-            await Assert.That(importMap).DoesNotContain($"{area.StaticWebAssetBasePath}/");
+        foreach (var basePath in ClientArea.All.Where(area => area.StaticWebAssetBasePath != ownClient).SelectMany(area => area.AssetBasePaths))
+            await Assert.That(importMap).DoesNotContain($"{basePath}/");
         if (ownClient is not null)
             await Assert.That(importMap).Contains($"./{ownClient}/_framework/dotnet.js");
+        if (ownLibraryModule is not null)
+            await Assert.That(importMap).Contains($"\"./{ownLibraryModule}\"");
+    }
+
+    [Test]
+    public async Task Get_HostCssBundle_LeavesOutAreaOnlyLibraries()
+    {
+        var bundle = await CreateClient().GetStringAsync("/MultipleClientsWeb.styles.css");
+
+        await Assert.That(bundle).Contains("@import '_content/MultipleClientShared/");
+        foreach (var library in ClientArea.All.SelectMany(area => area.Libraries))
+            await Assert.That(bundle).DoesNotContain($"_content/{library}/");
+    }
+
+    [Test]
+    [Arguments("/admin", "Admin", "AdminOnlyLib", "GameOnlyLib")]
+    [Arguments("/game", "Player", "GameOnlyLib", "AdminOnlyLib")]
+    public async Task Get_AreaPage_LinksOnlyItsOwnLibraryCss(string path, string role, string ownLibrary, string otherLibrary)
+    {
+        var client = await LogInAsync(role);
+
+        var html = await client.GetStringAsync(path);
+
+        await Assert.That(html).Contains($"<link rel=\"stylesheet\" href=\"_content/{ownLibrary}/{ownLibrary}.");
+        await Assert.That(html).DoesNotContain(otherLibrary);
     }
 
     [Test]
@@ -88,14 +113,18 @@ public partial class HostTests
     }
 
     [Test]
-    [Arguments("admin-client", "Admin")]
-    [Arguments("game-client", "Player")]
-    [Arguments("game-client", "Admin")]
-    public async Task Get_ClientRuntime_IsServedFromItsBasePath(string assetBasePath, string role)
+    [Arguments("admin-client/_framework/dotnet.js", "Admin")]
+    [Arguments("game-client/_framework/dotnet.js", "Player")]
+    [Arguments("game-client/_framework/dotnet.js", "Admin")]
+    [Arguments("admin-client/_framework/AdminOnlyLib.wasm", "Admin")]
+    [Arguments("_content/AdminOnlyLib/admin-tools.js", "Admin")]
+    [Arguments("_content/GameOnlyLib/game-tools.js", "Player")]
+    [Arguments("_content/GameOnlyLib/game-tools.js", "Admin")]
+    public async Task Get_ClientFileWithAccessToItsArea_IsServedPrivately(string url, string role)
     {
         var client = await LogInAsync(role);
 
-        var response = await client.GetAsync($"/{assetBasePath}/_framework/dotnet.js");
+        var response = await client.GetAsync(url);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(response.Headers.CacheControl?.Private).IsTrue();
@@ -107,6 +136,13 @@ public partial class HostTests
     [Arguments("game-client/_framework/dotnet.js", null)]
     [Arguments("admin-client/_framework/dotnet.js", "Player")]
     [Arguments("admin-client/_framework/MultipleClientAdmin.wasm", "Player")]
+    [Arguments("admin-client/_framework/AdminOnlyLib.wasm", "Player")]
+    [Arguments("_content/AdminOnlyLib/admin-tools.js", null)]
+    [Arguments("_content/AdminOnlyLib/admin-tools.js", "Player")]
+    [Arguments("_content/AdminOnlyLib/AdminOnlyLib.bundle.scp.css", "Player")]
+    [Arguments("game-client/_framework/GameOnlyLib.wasm", null)]
+    [Arguments("_content/GameOnlyLib/game-tools.js", null)]
+    [Arguments("_content/GameOnlyLib/GameOnlyLib.bundle.scp.css", null)]
     public async Task Get_ClientFileWithoutAccessToItsArea_RedirectsToLogin(string url, string? role)
     {
         var client = role is null ? CreateClient() : await LogInAsync(role);

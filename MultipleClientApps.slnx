@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
@@ -6,6 +6,8 @@
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="AdminOnlyLib/AdminOnlyLib.csproj" />
+  <Project Path="GameOnlyLib/GameOnlyLib.csproj" />
   <Project Path="MultipleClientAdmin/MultipleClientAdmin.csproj" />
   <Project Path="MultipleClientGame/MultipleClientGame.csproj" />
   <Project Path="MultipleClientShared/MultipleClientShared.csproj" />

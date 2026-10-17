@@ -7,4 +7,23 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
   </ItemGroup>
 
+  <!--
+    Razor class libraries that only one client uses (ClientArea.Libraries). Their files require access to that area,
+    so the host's scoped CSS bundle, which every page loads, must not @import them. An area page links the bundles of
+    its own libraries instead (ClientArea.LibraryCssBundles in App.razor).
+  -->
+  <ItemGroup>
+    <AreaOnlyLibrary Include="AdminOnlyLib;GameOnlyLib" />
+  </ItemGroup>
+
+  <Target Name="ExcludeAreaOnlyLibrariesFromHostCssBundle" AfterTargets="_CollectAllScopedCssAssets">
+    <PropertyGroup>
+      <_AreaOnlyLibraries>;@(AreaOnlyLibrary);</_AreaOnlyLibraries>
+    </PropertyGroup>
+    <ItemGroup>
+      <_AreaOnlyScopedCssBundle Include="@(_ScopedCssProjectBundles)" Condition="$(_AreaOnlyLibraries.Contains(';%(_ScopedCssProjectBundles.SourceId);'))" />
+      <_ScopedCssProjectBundles Remove="@(_AreaOnlyScopedCssBundle)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

@@ -12,6 +12,8 @@ where every area is a standalone WebAssembly app behind a Razor Pages host page 
 | `MultipleClientAdmin` | WebAssembly client, role `Admin` | `/admin/**` | `admin-client` |
 | `MultipleClientGame` | WebAssembly client, any logged-in user | `/game/**` | `game-client` |
 | `MultipleClientShared` | Razor class library used by the host and both clients (cache-busting examples) | – | `_content/MultipleClientShared` |
+| `AdminOnlyLib` | Razor class library used only by the admin client; downloadable by admins only | – | `_content/AdminOnlyLib` |
+| `GameOnlyLib` | Razor class library used only by the game client; downloadable by logged-in users only | – | `_content/GameOnlyLib` |
 | `MultipleClientsWeb.Tests` | TUnit request-level tests of the host | – | – |
 
 ```
@@ -54,6 +56,15 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
    - It also drops the url of the app-wide resource collection, and `UseNoAppWideResourceCollection` answers it with 404.
      Client components therefore get an empty `Assets` collection, so they must build urls themselves (see
      `SharedAssets`).
+7. **Area-only Razor class libraries** (`AdminOnlyLib`, `GameOnlyLib`). An area owns a library when it is listed in
+   `ClientArea.Libraries`. Step 6 then applies to its `_content/{library}/` files too: only users with access to the
+   area can download them (and its `.wasm` under the client's `_framework`), and only that area's import map lists
+   them. A component imports its JS module by the plain path (`./_content/AdminOnlyLib/admin-tools.js`); the page's
+   import map maps it to the fingerprinted file. Two more steps keep the library out of other pages:
+   - The SDK `@import`s the scoped CSS bundle of *every* referenced library into the host's `MultipleClientsWeb.styles.css`.
+     The `ExcludeAreaOnlyLibrariesFromHostCssBundle` target in `MultipleClientsWeb.csproj` removes the libraries
+     listed as `AreaOnlyLibrary` from it.
+   - `App.razor` links each library's `{library}.bundle.scp.css` only on pages of its own area.
 
 ## Caveats found
 
@@ -74,6 +85,10 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
 - **`_content/*` from Razor class libraries stays at the site root** (dotnet/aspnetcore#62249), not under a client's
   base path. With `<base href="/">` this works without URL rewrites for `/<area>/_content/...`: the
   `MultipleClientShared` images, CSS and JS module load from `/_content/MultipleClientShared/` in both clients.
+- **Area-only libraries are listed twice**: in `ClientArea.Libraries` (C#) and as `AreaOnlyLibrary` (MSBuild). The
+  test `Get_HostCssBundle_LeavesOutAreaOnlyLibraries` fails when they drift apart. The CSS exclusion target hooks into
+  internal SDK items (`_ScopedCssProjectBundles`); recheck it when you upgrade .NET. A library used by both areas
+  must not be listed; it stays public like `MultipleClientShared`.
 - **Client routes must not overlap**, because there is a single endpoint table. Prefixing every page with its
   area handles this.
 - **Hot reload of the clients is not verified.** dotnet/aspnetcore#62249 reports that it needs a rewrite of

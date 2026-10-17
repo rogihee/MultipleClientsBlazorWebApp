@@ -15,6 +15,14 @@
     @* A library file resolved through Assets is fingerprinted like a host file. *@
     <link rel="stylesheet" href="@Assets[SharedAssets.CssBundle]" />
     <link rel="stylesheet" href="@Assets["MultipleClientsWeb.styles.css"]" />
+    @if (area is not null)
+    {
+        @* The host bundle above leaves out the area's libraries. Assets only resolves (fingerprints) bundles that exist. *@
+        foreach (var bundle in area.LibraryCssBundles.Where(bundle => Assets[bundle] != bundle))
+        {
+            <link rel="stylesheet" href="@Assets[bundle]" />
+        }
+    }
     <ImportMap />
     <link rel="icon" type="image/png" href="@Assets["favicon.png"]" />
     @if (area is null)
