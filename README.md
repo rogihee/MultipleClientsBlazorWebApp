@@ -53,9 +53,14 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
    - `MapRazorComponents<App>()...WithClientAreaAssetsOnly()` replaces the app-wide asset collection of each page
      with the host's files, the shared libraries and that page's own area. `<ImportMap />` and `@Assets[...]` pick it up
      without changes.
-   - It also drops the url of the app-wide resource collection, and `UseNoAppWideResourceCollection` answers it with 404.
-     Client components therefore get an empty `Assets` collection, so they must build urls themselves (see
-     `SharedAssets`).
+   - It replaces the url of the app-wide resource collection, which `UseNoAppWideResourceCollection` answers with 404.
+     An area page instead hands its client the url of the area's own collection,
+     `/{area}/_framework/resource-collection.{fingerprint}.js`, which `MapClientAreaResourceCollections` serves to
+     users with access to the area only. The client imports it at startup, so `@Assets[...]` also returns fingerprinted
+     urls in WebAssembly. The admin and game pages show this with `AssetPicture`: a picture from the client's own
+     `wwwroot` (`admin-client/images/admin-picture.svg`) and one from `MultipleClientShared`, each with its resolved url
+     and the renderer that resolved it. On the home page, `@Assets["admin-client/images/admin-picture.svg"]` stays
+     unfingerprinted, because that file is not in the page's collection.
 7. **Area-only Razor class libraries** (`AdminOnlyLib`, `GameOnlyLib`). An area owns a library when it is listed in
    `ClientArea.Libraries`. Step 6 then applies to its `_content/{library}/` files too: only users with access to the
    area can download them (and its `.wasm` under the client's `_framework`), and only that area's import map lists
@@ -77,8 +82,9 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
   `App.razor` adds a `<link rel="preload">` for the current area's `dotnet.js` only.
 - **The framework shares the import map and resource collection across clients** unless you scope them (step 6). The
   shared lists reveal which assemblies, and so which features, every client contains. `ClientAssetIsolation` uses
-  public APIs, except that it removes two internal metadata types by name (`ResourceCollectionUrlMetadata`,
-  `ResourcePreloadCollection`). Recheck this when you upgrade .NET.
+  public APIs, except for two internal metadata types: it removes `ResourcePreloadCollection` by name, and it replaces
+  `ResourceCollectionUrlMetadata` with its own instance, created through reflection, so the client loads the area's
+  collection. Recheck this when you upgrade .NET.
 - **JS initializers (`*.lib.module.js`) of all clients stay public.** `blazor.web.js` loads the initializers of every
   client on every page, including the static SSR pages. In this sample they only exist in Development (the hot reload
   module), and the `Blazor-Web-Initializers` comment lists them there.
@@ -114,7 +120,7 @@ them in the SSR pages and in both clients.
 
 | Technique | Where in this sample |
 | --- | --- |
-| **Fingerprinted URLs through `@Assets[...]`.** `MapStaticAssets` serves them with `max-age=31536000, immutable`. | `App.razor`: `app.css`, favicon, `SharedAssets.CssBundle` |
+| **Fingerprinted URLs through `@Assets[...]`.** `MapStaticAssets` serves them with `max-age=31536000, immutable`. | `App.razor`: `app.css`, favicon, `SharedAssets.CssBundle`; `AssetPicture` on the home, admin and game pages, also in WebAssembly |
 | **A version query on URLs that code builds itself** (library code, `import()` of JS modules). | `SharedAssets.AppendVersion`, `SharedAssets.ModuleUrl` |
 | **A version query on image `url()`s in scoped CSS**, rewritten after `BundleScopedCssFiles` by the `VersionCssUrls` task in `Directory.Build.targets`. The SDK does not fingerprint `url()`s inside scoped CSS. | `MultipleClientShared.csproj`, `VersionBadge.razor.css` |
 | **A fingerprinted `@import` of a library's scoped CSS bundle.** | Done by the .NET 10 SDK, no rewrite needed |

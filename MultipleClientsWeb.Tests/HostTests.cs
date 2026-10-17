@@ -103,6 +103,72 @@ public partial class HostTests
     }
 
     [Test]
+    [Arguments("/admin", "Admin", "admin-client/images/admin-picture")]
+    [Arguments("/game", "Player", "game-client/images/game-picture")]
+    public async Task Get_AreaPage_ResolvesItsPicturesThroughAssets(string path, string role, string ownPicture)
+    {
+        var client = await LogInAsync(role);
+
+        var html = await client.GetStringAsync(path);
+
+        await Assert.That(html).Matches($"<img src=\"{ownPicture}\\.[a-z0-9]+\\.svg\"");
+        await Assert.That(html).Matches("<img src=\"_content/MultipleClientShared/images/shared-picture\\.[a-z0-9]+\\.svg\"");
+    }
+
+    [Test]
+    public async Task Get_Home_LeavesAnotherAreasAssetUnresolved()
+    {
+        var html = await CreateClient().GetStringAsync("/");
+
+        await Assert.That(html).Contains("<code>admin-client/images/admin-picture.svg</code>");
+        await Assert.That(html).DoesNotMatch("admin-picture\\.[a-z0-9]+\\.svg");
+    }
+
+    [Test]
+    [Arguments("admin-client", "Admin", "AdminOnlyLib", "game-client")]
+    [Arguments("game-client", "Player", "GameOnlyLib", "admin-client")]
+    public async Task Get_AreaResourceCollection_ListsOnlyItsOwnArea(string basePath, string role, string ownLibrary, string otherBasePath)
+    {
+        var client = await LogInAsync(role);
+
+        var response = await client.GetAsync($"/{basePath}/_framework/resource-collection.js");
+        var content = await response.Content.ReadAsStringAsync();
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.Headers.CacheControl?.Private).IsTrue();
+        await Assert.That(content).StartsWith("export function get() {");
+        await Assert.That(content).Contains($"\"{basePath}/images/");
+        await Assert.That(content).Contains($"\"_content/{ownLibrary}/");
+        await Assert.That(content).Contains("\"_content/MultipleClientShared/images/shared-picture.");
+        foreach (var other in ClientArea.All.Where(area => area.StaticWebAssetBasePath == otherBasePath).SelectMany(area => area.AssetBasePaths))
+            await Assert.That(content).DoesNotContain($"\"{other}/");
+    }
+
+    [Test]
+    [Arguments("admin-client/_framework/resource-collection.js", null)]
+    [Arguments("admin-client/_framework/resource-collection.js", "Player")]
+    [Arguments("game-client/_framework/resource-collection.js", null)]
+    public async Task Get_AreaResourceCollectionWithoutAccess_RedirectsToLogin(string url, string? role)
+    {
+        var client = role is null ? CreateClient() : await LogInAsync(role);
+
+        var response = await client.GetAsync(url);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+        await Assert.That(response.Headers.Location?.AbsolutePath).IsEqualTo("/login");
+    }
+
+    [Test]
+    public async Task Get_AreaResourceCollectionWithWrongFingerprint_IsNotFound()
+    {
+        var client = await LogInAsync("Player");
+
+        var response = await client.GetAsync("/game-client/_framework/resource-collection.0000000000.js");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
     [Arguments("/_framework/resource-collection.js")]
     [Arguments("/_framework/resource-collection.js.gz")]
     public async Task Get_AppWideResourceCollection_IsNotFound(string path)

@@ -12,6 +12,14 @@
 
 <AdminOnlyLib.AdminTools />
 
+<h2>Pictures through <code>@@Assets[...]</code></h2>
+<p>
+    Both resolve to fingerprinted urls, first while prerendering and again in WebAssembly, which loads this area's
+    own resource collection.
+</p>
+<MultipleClientShared.AssetPicture Path="admin-client/images/admin-picture.svg" Alt="Admin shield" />
+<MultipleClientShared.AssetPicture Path="@MultipleClientShared.SharedAssets.Picture" Alt="Shared layers" />
+
 <p role="status">Refresh count: @refreshCount</p>
 <button class="btn btn-danger" @onclick="() => refreshCount++">Refresh statistics</button>
 

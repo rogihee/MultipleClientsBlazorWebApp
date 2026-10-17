@@ -35,6 +35,7 @@ app.UseAntiforgery();
 app.UsePrivateLibraryAndFrameworkCaching();
 app.UseNoAppWideResourceCollection();
 app.MapStaticAssets().RequireClientAreaAuthorization();
+app.MapClientAreaResourceCollections();
 // One endpoint table for the SSR pages and both clients; App.razor picks the client per area.
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
