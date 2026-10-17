@@ -16,4 +16,8 @@
     <ProjectReference Include="..\MultipleClientShared\MultipleClientShared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AdminOnlyLib\AdminOnlyLib.csproj" />
+  </ItemGroup>
+
 </Project>

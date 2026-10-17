@@ -10,6 +10,16 @@
     <code>/game-client/_framework/</code>.
 </p>
 
+<GameOnlyLib.GameTools />
+
+<h2>Pictures through <code>@@Assets[...]</code></h2>
+<p>
+    Both resolve to fingerprinted urls, first while prerendering and again in WebAssembly, which loads this area's
+    own resource collection.
+</p>
+<MultipleClientShared.AssetPicture Path="game-client/images/game-picture.svg" Alt="Game dice" />
+<MultipleClientShared.AssetPicture Path="@MultipleClientShared.SharedAssets.Picture" Alt="Shared layers" />
+
 <p role="status">@message</p>
 
 <div class="input-group mb-3" style="max-width: 20rem">

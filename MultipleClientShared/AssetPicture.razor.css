@@ -1,0 +1,14 @@
+.asset-picture {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-block: 1rem;
+}
+
+.asset-picture img {
+    flex: none;
+}
+
+.asset-picture code {
+    word-break: break-all;
+}

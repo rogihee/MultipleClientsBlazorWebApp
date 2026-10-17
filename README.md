@@ -12,6 +12,8 @@ where every area is a standalone WebAssembly app behind a Razor Pages host page 
 | `MultipleClientAdmin` | WebAssembly client, role `Admin` | `/admin/**` | `admin-client` |
 | `MultipleClientGame` | WebAssembly client, any logged-in user | `/game/**` | `game-client` |
 | `MultipleClientShared` | Razor class library used by the host and both clients (cache-busting examples) | – | `_content/MultipleClientShared` |
+| `AdminOnlyLib` | Razor class library used only by the admin client; downloadable by admins only | – | `_content/AdminOnlyLib` |
+| `GameOnlyLib` | Razor class library used only by the game client; downloadable by logged-in users only | – | `_content/GameOnlyLib` |
 | `MultipleClientsWeb.Tests` | TUnit request-level tests of the host | – | – |
 
 ```
@@ -42,6 +44,32 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
 5. **The authentication state** flows from the host to each client through
    `AddAuthenticationStateSerialization` and `AddAuthenticationStateDeserialization`. Each client's router is an
    `AuthorizeRouteView`.
+6. **Each client's files are private to its area** (`ClientAssetIsolation`). By default every page's import map,
+   and a public `_framework/resource-collection.js`, list the files of *all* clients, and anyone can download
+   `/admin-client/_framework/MultipleClientAdmin.wasm`. Because the assembly names are predictable, hiding the lists
+   alone would not be enough, so this sample does three things:
+   - `MapStaticAssets().RequireClientAreaAuthorization()` puts an `[Authorize]` (with `ClientArea.RequiredRole`) on
+     every file under a client's base path. Without access, the request is redirected to the login page.
+   - `MapRazorComponents<App>()...WithClientAreaAssetsOnly()` replaces the app-wide asset collection of each page
+     with the host's files, the shared libraries and that page's own area. `<ImportMap />` and `@Assets[...]` pick it up
+     without changes.
+   - It replaces the url of the app-wide resource collection, which `UseNoAppWideResourceCollection` answers with 404.
+     An area page instead hands its client the url of the area's own collection,
+     `/{area}/_framework/resource-collection.{fingerprint}.js`, which `MapClientAreaResourceCollections` serves to
+     users with access to the area only. The client imports it at startup, so `@Assets[...]` also returns fingerprinted
+     urls in WebAssembly. The admin and game pages show this with `AssetPicture`: a picture from the client's own
+     `wwwroot` (`admin-client/images/admin-picture.svg`) and one from `MultipleClientShared`, each with its resolved url
+     and the renderer that resolved it. On the home page, `@Assets["admin-client/images/admin-picture.svg"]` stays
+     unfingerprinted, because that file is not in the page's collection.
+7. **Area-only Razor class libraries** (`AdminOnlyLib`, `GameOnlyLib`). An area owns a library when it is listed in
+   `ClientArea.Libraries`. Step 6 then applies to its `_content/{library}/` files too: only users with access to the
+   area can download them (and its `.wasm` under the client's `_framework`), and only that area's import map lists
+   them. A component imports its JS module by the plain path (`./_content/AdminOnlyLib/admin-tools.js`); the page's
+   import map maps it to the fingerprinted file. Two more steps keep the library out of other pages:
+   - The SDK `@import`s the scoped CSS bundle of *every* referenced library into the host's `MultipleClientsWeb.styles.css`.
+     The `ExcludeAreaOnlyLibrariesFromHostCssBundle` target in `MultipleClientsWeb.csproj` removes the libraries
+     listed as `AreaOnlyLibrary` from it.
+   - `App.razor` links each library's `{library}.bundle.scp.css` only on pages of its own area.
 
 ## Caveats found
 
@@ -52,11 +80,21 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
   - after the login post, redirect with `forceLoad: true`.
 - **Don't use `<ResourcePreloader />`.** It preloads the runtime of *every* referenced client on every page.
   `App.razor` adds a `<link rel="preload">` for the current area's `dotnet.js` only.
-- **The import map and resource collection are shared.** They list the assets of all clients. This is harmless
-  but makes the page a bit larger.
+- **The framework shares the import map and resource collection across clients** unless you scope them (step 6). The
+  shared lists reveal which assemblies, and so which features, every client contains. `ClientAssetIsolation` uses
+  public APIs, except for two internal metadata types: it removes `ResourcePreloadCollection` by name, and it replaces
+  `ResourceCollectionUrlMetadata` with its own instance, created through reflection, so the client loads the area's
+  collection. Recheck this when you upgrade .NET.
+- **JS initializers (`*.lib.module.js`) of all clients stay public.** `blazor.web.js` loads the initializers of every
+  client on every page, including the static SSR pages. In this sample they only exist in Development (the hot reload
+  module), and the `Blazor-Web-Initializers` comment lists them there.
 - **`_content/*` from Razor class libraries stays at the site root** (dotnet/aspnetcore#62249), not under a client's
   base path. With `<base href="/">` this works without URL rewrites for `/<area>/_content/...`: the
   `MultipleClientShared` images, CSS and JS module load from `/_content/MultipleClientShared/` in both clients.
+- **Area-only libraries are listed twice**: in `ClientArea.Libraries` (C#) and as `AreaOnlyLibrary` (MSBuild). The
+  test `Get_HostCssBundle_LeavesOutAreaOnlyLibraries` fails when they drift apart. The CSS exclusion target hooks into
+  internal SDK items (`_ScopedCssProjectBundles`); recheck it when you upgrade .NET. A library used by both areas
+  must not be listed; it stays public like `MultipleClientShared`.
 - **Client routes must not overlap**, because there is a single endpoint table. Prefixing every page with its
   area handles this.
 - **Hot reload of the clients is not verified.** dotnet/aspnetcore#62249 reports that it needs a rewrite of
@@ -82,11 +120,11 @@ them in the SSR pages and in both clients.
 
 | Technique | Where in this sample |
 | --- | --- |
-| **Fingerprinted URLs through `@Assets[...]`.** `MapStaticAssets` serves them with `max-age=31536000, immutable`. | `App.razor`: `app.css`, favicon, `SharedAssets.CssBundle` |
+| **Fingerprinted URLs through `@Assets[...]`.** `MapStaticAssets` serves them with `max-age=31536000, immutable`. | `App.razor`: `app.css`, favicon, `SharedAssets.CssBundle`; `AssetPicture` on the home, admin and game pages, also in WebAssembly |
 | **A version query on URLs that code builds itself** (library code, `import()` of JS modules). | `SharedAssets.AppendVersion`, `SharedAssets.ModuleUrl` |
 | **A version query on image `url()`s in scoped CSS**, rewritten after `BundleScopedCssFiles` by the `VersionCssUrls` task in `Directory.Build.targets`. The SDK does not fingerprint `url()`s inside scoped CSS. | `MultipleClientShared.csproj`, `VersionBadge.razor.css` |
 | **A fingerprinted `@import` of a library's scoped CSS bundle.** | Done by the .NET 10 SDK, no rewrite needed |
-| **The client runtime resolved through the import map.** `dotnet.js` itself stays unfingerprinted and `no-cache`, so the browser always gets the current boot manifest. | `<ImportMap />` + `loadBootResource` in `App.razor` |
+| **The client runtime resolved through the import map.** `dotnet.js` itself stays unfingerprinted and `no-cache`, so the browser always gets the current boot manifest. Each page's import map only lists its own client. | `<ImportMap />` + `loadBootResource` in `App.razor`, `WithClientAreaAssetsOnly` |
 | **No shared caches for `_content` and `_framework`.** These responses get `private, max-age=86400, must-revalidate`, or `private, no-cache` where `MapStaticAssets` sent `no-cache`, so a CDN never serves an old library file or boot manifest behind an unchanged URL. | `StaticAssetCaching.UsePrivateLibraryAndFrameworkCaching` |
 
 `$(Version)` is set in `Directory.Build.props`; CI sets it per deployment so every version query changes.

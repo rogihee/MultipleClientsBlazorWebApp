@@ -26,7 +26,7 @@ public partial class StaticAssetCachingTests
 
     [Test]
     [Arguments("_content/MultipleClientShared/images/logo.svg?v=1.0.0")]
-    [Arguments("admin-client/_framework/dotnet.js")]
+    [Arguments("_framework/blazor.web.js")]
     public async Task Get_LibraryOrFrameworkFile_IsPrivate(string url)
     {
         var response = await Factory.CreateClient().GetAsync(url);

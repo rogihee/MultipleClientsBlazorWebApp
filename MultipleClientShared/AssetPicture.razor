@@ -1,0 +1,17 @@
+<figure class="asset-picture">
+    <img src="@Assets[Path]" alt="@Alt" width="64" height="64" />
+    <figcaption>
+        <code>@@Assets["@Path"]</code><br />
+        <code>@Assets[Path]</code><br />
+        <small>resolved by the @RendererInfo.Name renderer</small>
+    </figcaption>
+</figure>
+
+@code {
+    /// <summary>Unfingerprinted path of the file, relative to the base href.</summary>
+    [Parameter, EditorRequired]
+    public string Path { get; set; } = "";
+
+    [Parameter]
+    public string Alt { get; set; } = "";
+}

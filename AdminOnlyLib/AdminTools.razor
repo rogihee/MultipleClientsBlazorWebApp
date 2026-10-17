@@ -1,0 +1,23 @@
+@inject IJSRuntime JS
+
+<div class="admin-tools">
+    <strong>AdminOnlyLib</strong>: only admins can download this library.
+    <code>@(moduleUrl ?? "loading module...")</code>
+</div>
+
+@code {
+    /// <summary>Unversioned on purpose: the import map of an admin page maps it to the fingerprinted file.</summary>
+    public const string ModuleUrl = "./_content/AdminOnlyLib/admin-tools.js";
+
+    private string? moduleUrl;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await using var module = await JS.InvokeAsync<IJSObjectReference>("import", ModuleUrl);
+        moduleUrl = await module.InvokeAsync<string>("moduleUrl");
+        StateHasChanged();
+    }
+}

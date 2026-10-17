@@ -13,4 +13,8 @@
     <ProjectReference Include="..\MultipleClientShared\MultipleClientShared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GameOnlyLib\GameOnlyLib.csproj" />
+  </ItemGroup>
+
 </Project>

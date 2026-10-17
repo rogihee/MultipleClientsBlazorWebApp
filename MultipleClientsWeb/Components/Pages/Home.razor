@@ -33,5 +33,14 @@
         <tr><td>Library scoped CSS <code>@@import</code>: fingerprinted by the SDK</td><td><code>_content/MultipleClientShared/MultipleClientShared.{hash}.bundle.scp.css</code></td></tr>
         <tr><td>Image <code>url()</code> in library scoped CSS: version query added at build</td><td><code>images/badge-bg.svg?v=@SharedAssets.Version</code></td></tr>
         <tr><td>Client runtime: fingerprinted through the import map</td><td><code>@Assets["admin-client/_framework/dotnet.js"]</code></td></tr>
+        <tr><td>Another area's file through <code>@@Assets[...]</code>: not in this page's collection, left as is</td><td><code>@Assets["admin-client/images/admin-picture.svg"]</code></td></tr>
     </tbody>
 </table>
+
+<h2>Pictures through <code>@@Assets[...]</code></h2>
+
+<p>
+    The admin and game pages show their own picture next to this shared one, resolved by the same component.
+</p>
+
+<AssetPicture Path="@SharedAssets.Picture" Alt="Shared layers" />
