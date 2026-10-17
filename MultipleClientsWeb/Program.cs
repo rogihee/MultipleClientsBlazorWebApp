@@ -33,11 +33,13 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.UsePrivateLibraryAndFrameworkCaching();
-app.MapStaticAssets();
+app.UseNoAppWideResourceCollection();
+app.MapStaticAssets().RequireClientAreaAuthorization();
 // One endpoint table for the SSR pages and both clients; App.razor picks the client per area.
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(MultipleClientAdmin.Routes).Assembly, typeof(MultipleClientGame.Routes).Assembly);
+    .AddAdditionalAssemblies(typeof(MultipleClientAdmin.Routes).Assembly, typeof(MultipleClientGame.Routes).Assembly)
+    .WithClientAreaAssetsOnly();
 
 app.MapPost("/logout", async (HttpContext context) => {
     await context.SignOutAsync();

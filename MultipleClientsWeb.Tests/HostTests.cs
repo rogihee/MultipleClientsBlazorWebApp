@@ -59,13 +59,62 @@ public partial class HostTests
     }
 
     [Test]
-    [Arguments("admin-client")]
-    [Arguments("game-client")]
-    public async Task Get_ClientRuntime_IsServedFromItsBasePath(string assetBasePath)
+    [Arguments("/", "Player", null)]
+    [Arguments("/login", "Player", null)]
+    [Arguments("/admin", "Admin", "admin-client")]
+    [Arguments("/game", "Player", "game-client")]
+    public async Task Get_Page_ImportMapListsOnlyItsOwnClient(string path, string role, string? ownClient)
     {
-        var response = await CreateClient().GetAsync($"/{assetBasePath}/_framework/dotnet.js");
+        var client = await LogInAsync(role);
+
+        var importMap = ImportMap().Match(await client.GetStringAsync(path)).Value;
+
+        await Assert.That(importMap).Contains("_framework/blazor.web.js");
+        await Assert.That(importMap).DoesNotContain("resource-collection");
+        foreach (var area in ClientArea.All.Where(area => area.StaticWebAssetBasePath != ownClient))
+            await Assert.That(importMap).DoesNotContain($"{area.StaticWebAssetBasePath}/");
+        if (ownClient is not null)
+            await Assert.That(importMap).Contains($"./{ownClient}/_framework/dotnet.js");
+    }
+
+    [Test]
+    [Arguments("/_framework/resource-collection.js")]
+    [Arguments("/_framework/resource-collection.js.gz")]
+    public async Task Get_AppWideResourceCollection_IsNotFound(string path)
+    {
+        var response = await CreateClient().GetAsync(path);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    [Arguments("admin-client", "Admin")]
+    [Arguments("game-client", "Player")]
+    [Arguments("game-client", "Admin")]
+    public async Task Get_ClientRuntime_IsServedFromItsBasePath(string assetBasePath, string role)
+    {
+        var client = await LogInAsync(role);
+
+        var response = await client.GetAsync($"/{assetBasePath}/_framework/dotnet.js");
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(response.Headers.CacheControl?.Private).IsTrue();
+    }
+
+    [Test]
+    [Arguments("admin-client/_framework/dotnet.js", null)]
+    [Arguments("admin-client/_framework/MultipleClientAdmin.wasm", null)]
+    [Arguments("game-client/_framework/dotnet.js", null)]
+    [Arguments("admin-client/_framework/dotnet.js", "Player")]
+    [Arguments("admin-client/_framework/MultipleClientAdmin.wasm", "Player")]
+    public async Task Get_ClientFileWithoutAccessToItsArea_RedirectsToLogin(string url, string? role)
+    {
+        var client = role is null ? CreateClient() : await LogInAsync(role);
+
+        var response = await client.GetAsync(url);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+        await Assert.That(response.Headers.Location?.AbsolutePath).IsEqualTo("/login");
     }
 
     private HttpClient CreateClient() => Factory.CreateClient(new() { AllowAutoRedirect = false });
@@ -89,4 +138,7 @@ public partial class HostTests
 
     [GeneratedRegex("name=\"__RequestVerificationToken\" value=\"([^\"]+)\"")]
     private static partial Regex AntiforgeryToken();
+
+    [GeneratedRegex("<script type=\"importmap\">.*?</script>", RegexOptions.Singleline)]
+    private static partial Regex ImportMap();
 }

@@ -42,6 +42,18 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
 5. **The authentication state** flows from the host to each client through
    `AddAuthenticationStateSerialization` and `AddAuthenticationStateDeserialization`. Each client's router is an
    `AuthorizeRouteView`.
+6. **Each client's files are private to its area** (`ClientAssetIsolation`). By default every page's import map,
+   and a public `_framework/resource-collection.js`, list the files of *all* clients, and anyone can download
+   `/admin-client/_framework/MultipleClientAdmin.wasm`. Because the assembly names are predictable, hiding the lists
+   alone would not be enough, so this sample does three things:
+   - `MapStaticAssets().RequireClientAreaAuthorization()` puts an `[Authorize]` (with `ClientArea.RequiredRole`) on
+     every file under a client's base path. Without access, the request is redirected to the login page.
+   - `MapRazorComponents<App>()...WithClientAreaAssetsOnly()` replaces the app-wide asset collection of each page
+     with the host's files, the shared libraries and that page's own area. `<ImportMap />` and `@Assets[...]` pick it up
+     without changes.
+   - It also drops the url of the app-wide resource collection, and `UseNoAppWideResourceCollection` answers it with 404.
+     Client components therefore get an empty `Assets` collection, so they must build urls themselves (see
+     `SharedAssets`).
 
 ## Caveats found
 
@@ -52,8 +64,13 @@ and dotnet/aspnetcore#65910, all still open). This setup copies what the aspnetc
   - after the login post, redirect with `forceLoad: true`.
 - **Don't use `<ResourcePreloader />`.** It preloads the runtime of *every* referenced client on every page.
   `App.razor` adds a `<link rel="preload">` for the current area's `dotnet.js` only.
-- **The import map and resource collection are shared.** They list the assets of all clients. This is harmless
-  but makes the page a bit larger.
+- **The framework shares the import map and resource collection across clients** unless you scope them (step 6). The
+  shared lists reveal which assemblies, and so which features, every client contains. `ClientAssetIsolation` uses
+  public APIs, except that it removes two internal metadata types by name (`ResourceCollectionUrlMetadata`,
+  `ResourcePreloadCollection`). Recheck this when you upgrade .NET.
+- **JS initializers (`*.lib.module.js`) of all clients stay public.** `blazor.web.js` loads the initializers of every
+  client on every page, including the static SSR pages. In this sample they only exist in Development (the hot reload
+  module), and the `Blazor-Web-Initializers` comment lists them there.
 - **`_content/*` from Razor class libraries stays at the site root** (dotnet/aspnetcore#62249), not under a client's
   base path. With `<base href="/">` this works without URL rewrites for `/<area>/_content/...`: the
   `MultipleClientShared` images, CSS and JS module load from `/_content/MultipleClientShared/` in both clients.
@@ -86,7 +103,7 @@ them in the SSR pages and in both clients.
 | **A version query on URLs that code builds itself** (library code, `import()` of JS modules). | `SharedAssets.AppendVersion`, `SharedAssets.ModuleUrl` |
 | **A version query on image `url()`s in scoped CSS**, rewritten after `BundleScopedCssFiles` by the `VersionCssUrls` task in `Directory.Build.targets`. The SDK does not fingerprint `url()`s inside scoped CSS. | `MultipleClientShared.csproj`, `VersionBadge.razor.css` |
 | **A fingerprinted `@import` of a library's scoped CSS bundle.** | Done by the .NET 10 SDK, no rewrite needed |
-| **The client runtime resolved through the import map.** `dotnet.js` itself stays unfingerprinted and `no-cache`, so the browser always gets the current boot manifest. | `<ImportMap />` + `loadBootResource` in `App.razor` |
+| **The client runtime resolved through the import map.** `dotnet.js` itself stays unfingerprinted and `no-cache`, so the browser always gets the current boot manifest. Each page's import map only lists its own client. | `<ImportMap />` + `loadBootResource` in `App.razor`, `WithClientAreaAssetsOnly` |
 | **No shared caches for `_content` and `_framework`.** These responses get `private, max-age=86400, must-revalidate`, or `private, no-cache` where `MapStaticAssets` sent `no-cache`, so a CDN never serves an old library file or boot manifest behind an unchanged URL. | `StaticAssetCaching.UsePrivateLibraryAndFrameworkCaching` |
 
 `$(Version)` is set in `Directory.Build.props`; CI sets it per deployment so every version query changes.
